@@ -28,19 +28,7 @@ class PredictorPaths:
 
     @property
     def artifact_dir(self) -> Path:
-        preferred = self.root_dir / "artifacts" / "big_qsar_so4_v2_mixed"
-        if preferred.exists():
-            return preferred
-        # Fallback for repositories where model files were uploaded at repo root.
-        required = [
-            "metrics.json",
-            "cleaned_rows_aggregated.csv",
-            "catboost_model.joblib",
-            "stacked_cat_model.joblib",
-        ]
-        if all((self.root_dir / name).exists() for name in required):
-            return self.root_dir
-        return preferred
+        return self.root_dir / "artifacts" / "big_qsar_so4_v2_mixed"
 
     @property
     def enhancement_dir(self) -> Path:
@@ -72,41 +60,52 @@ class PredictorPaths:
             "esandt_enhancements/scaffold_similarity_bin_error_summary.csv": "scaffold_similarity_bin_error_summary.csv",
         }
 
-    def ensure_artifacts(self) -> None:
-        missing = []
-        for rel_path in self.required_artifact_map().keys():
-            target = self.artifact_dir / rel_path
-            if not target.exists():
-                missing.append(rel_path)
-        if not missing:
-            return
+    def _extract_zip_portable(self, zip_path: Path) -> None:
+        with zipfile.ZipFile(zip_path, "r") as zf:
+            for member in zf.infolist():
+                normalized = member.filename.replace("\\", "/").lstrip("/")
+                if not normalized or normalized.endswith("/"):
+                    continue
+                out_path = self.root_dir / normalized
+                out_path.parent.mkdir(parents=True, exist_ok=True)
+                with zf.open(member, "r") as src, out_path.open("wb") as dst:
+                    shutil.copyfileobj(src, dst)
 
+    def ensure_artifacts(self, force: bool = False) -> None:
+        required = list(self.required_artifact_map().keys())
+        if force:
+            for rel_path in required:
+                p = self.artifact_dir / rel_path
+                if p.exists():
+                    p.unlink()
+        missing = [rel for rel in required if not (self.artifact_dir / rel).exists()]
+        if not force and not missing:
+            return
         self.artifact_dir.mkdir(parents=True, exist_ok=True)
         (self.artifact_dir / "esandt_enhancements").mkdir(parents=True, exist_ok=True)
-        # Preferred path: download a single ZIP bundle from GitHub Release.
         bundle_name = os.getenv("SO4_RELEASE_BUNDLE", "so4_assets_bundle.zip")
         bundle_url = f"{self.release_base_url}/{bundle_name}"
         bundle_local = self.root_dir / bundle_name
         try:
-            urllib.request.urlretrieve(bundle_url, bundle_local.as_posix())
-            with zipfile.ZipFile(bundle_local, "r") as zf:
-                zf.extractall(self.root_dir)
-            if bundle_local.exists():
-                bundle_local.unlink()
+            if not bundle_local.exists():
+                urllib.request.urlretrieve(bundle_url, bundle_local.as_posix())
+            self._extract_zip_portable(bundle_local)
         except Exception:
-            # Fallback path: download individual files when bundle is unavailable.
             for rel_path in missing:
                 filename = self.required_artifact_map()[rel_path]
                 url = f"{self.release_base_url}/{filename}"
                 target = self.artifact_dir / rel_path
                 target.parent.mkdir(parents=True, exist_ok=True)
                 urllib.request.urlretrieve(url, target.as_posix())
+        finally:
+            if bundle_local.exists():
+                bundle_local.unlink()
 
-        # If bundle extracted to a nested root, normalize to expected location.
-        nested = self.root_dir / "so4_assets_bundle" / "artifacts" / "big_qsar_so4_v2_mixed"
-        if nested.exists() and not self.artifact_dir.exists():
-            self.artifact_dir.parent.mkdir(parents=True, exist_ok=True)
-            shutil.move(str(nested), str(self.artifact_dir))
+        still_missing = [rel for rel in required if not (self.artifact_dir / rel).exists()]
+        if still_missing:
+            raise FileNotFoundError(
+                "Missing required artifacts after download: " + ", ".join(still_missing)
+            )
 
 
 def standardize_molecule(smiles: str):
@@ -174,12 +173,18 @@ def compute_so4_prior(desc_df: pd.DataFrame):
 class SO4Predictor:
     def __init__(self, paths: Optional[PredictorPaths] = None):
         self.paths = paths or PredictorPaths()
-        self.paths.ensure_artifacts()
+        self.paths.ensure_artifacts(force=False)
         self.fp_bits = 1024
         self.conformal_alpha = 0.10
         self.conformal_beta = 1.0
         self.nominal_coverage = 1.0 - self.conformal_alpha
+        try:
+            self._load_assets()
+        except Exception:
+            self.paths.ensure_artifacts(force=True)
+            self._load_assets()
 
+    def _load_assets(self) -> None:
         self.metrics = json.loads((self.paths.artifact_dir / "metrics.json").read_text(encoding="utf-8"))
         self.q_hat = float(self.metrics["metrics"]["conformal"]["q_hat"])
         self.base_models = {
