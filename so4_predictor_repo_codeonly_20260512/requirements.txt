@@ -1,9 +1,0 @@
-numpy==1.26.4
-pandas==2.2.2
-joblib==1.4.2
-scikit-learn==1.4.2
-streamlit==1.35.0
-catboost==1.2.8
-lightgbm==4.5.0
-xgboost==2.0.3
-rdkit-pypi==2022.9.5
