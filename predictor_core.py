@@ -59,6 +59,17 @@ class PredictorPaths:
             "esandt_enhancements/random_similarity_bin_error_summary.csv": "random_similarity_bin_error_summary.csv",
             "esandt_enhancements/scaffold_similarity_bin_error_summary.csv": "scaffold_similarity_bin_error_summary.csv",
         }
+        
+    def _extract_zip_portable(self, zip_path: Path) -> None:
+    with zipfile.ZipFile(zip_path, "r") as zf:
+        for member in zf.infolist():
+            normalized = member.filename.replace("\\", "/").lstrip("/")
+            if not normalized or normalized.endswith("/"):
+                continue
+            out_path = self.root_dir / normalized
+            out_path.parent.mkdir(parents=True, exist_ok=True)
+            with zf.open(member, "r") as src, out_path.open("wb") as dst:
+                shutil.copyfileobj(src, dst)
 
     def _extract_zip_portable(self, zip_path: Path) -> None:
         with zipfile.ZipFile(zip_path, "r") as zf:
