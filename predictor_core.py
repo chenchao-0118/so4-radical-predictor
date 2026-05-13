@@ -19,6 +19,50 @@ from rdkit.Chem.MolStandardize import rdMolStandardize
 
 RDLogger.DisableLog("rdApp.*")
 
+TRAINING_DESCRIPTOR_NAMES = [
+    'MaxAbsEStateIndex', 'MaxEStateIndex', 'MinAbsEStateIndex', 'MinEStateIndex', 'qed', 'SPS',
+    'MolWt', 'HeavyAtomMolWt', 'ExactMolWt', 'NumValenceElectrons', 'NumRadicalElectrons',
+    'MaxPartialCharge', 'MinPartialCharge', 'MaxAbsPartialCharge', 'MinAbsPartialCharge',
+    'FpDensityMorgan1', 'FpDensityMorgan2', 'FpDensityMorgan3', 'BCUT2D_MWHI', 'BCUT2D_MWLOW',
+    'BCUT2D_CHGHI', 'BCUT2D_CHGLO', 'BCUT2D_LOGPHI', 'BCUT2D_LOGPLOW', 'BCUT2D_MRHI',
+    'BCUT2D_MRLOW', 'AvgIpc', 'BalabanJ', 'BertzCT', 'Chi0', 'Chi0n', 'Chi0v', 'Chi1',
+    'Chi1n', 'Chi1v', 'Chi2n', 'Chi2v', 'Chi3n', 'Chi3v', 'Chi4n', 'Chi4v', 'HallKierAlpha',
+    'Ipc', 'Kappa1', 'Kappa2', 'Kappa3', 'LabuteASA', 'PEOE_VSA1', 'PEOE_VSA10',
+    'PEOE_VSA11', 'PEOE_VSA12', 'PEOE_VSA13', 'PEOE_VSA14', 'PEOE_VSA2', 'PEOE_VSA3',
+    'PEOE_VSA4', 'PEOE_VSA5', 'PEOE_VSA6', 'PEOE_VSA7', 'PEOE_VSA8', 'PEOE_VSA9',
+    'SMR_VSA1', 'SMR_VSA10', 'SMR_VSA2', 'SMR_VSA3', 'SMR_VSA4', 'SMR_VSA5',
+    'SMR_VSA6', 'SMR_VSA7', 'SMR_VSA8', 'SMR_VSA9', 'SlogP_VSA1', 'SlogP_VSA10',
+    'SlogP_VSA11', 'SlogP_VSA12', 'SlogP_VSA2', 'SlogP_VSA3', 'SlogP_VSA4',
+    'SlogP_VSA5', 'SlogP_VSA6', 'SlogP_VSA7', 'SlogP_VSA8', 'SlogP_VSA9', 'TPSA',
+    'EState_VSA1', 'EState_VSA10', 'EState_VSA11', 'EState_VSA2', 'EState_VSA3',
+    'EState_VSA4', 'EState_VSA5', 'EState_VSA6', 'EState_VSA7', 'EState_VSA8',
+    'EState_VSA9', 'VSA_EState1', 'VSA_EState10', 'VSA_EState2', 'VSA_EState3',
+    'VSA_EState4', 'VSA_EState5', 'VSA_EState6', 'VSA_EState7', 'VSA_EState8',
+    'VSA_EState9', 'FractionCSP3', 'HeavyAtomCount', 'NHOHCount', 'NOCount',
+    'NumAliphaticCarbocycles', 'NumAliphaticHeterocycles', 'NumAliphaticRings',
+    'NumAmideBonds', 'NumAromaticCarbocycles', 'NumAromaticHeterocycles',
+    'NumAromaticRings', 'NumAtomStereoCenters', 'NumBridgeheadAtoms', 'NumHAcceptors',
+    'NumHDonors', 'NumHeteroatoms', 'NumHeterocycles', 'NumRotatableBonds',
+    'NumSaturatedCarbocycles', 'NumSaturatedHeterocycles', 'NumSaturatedRings',
+    'NumSpiroAtoms', 'NumUnspecifiedAtomStereoCenters', 'Phi', 'RingCount', 'MolLogP',
+    'MolMR', 'fr_Al_COO', 'fr_Al_OH', 'fr_Al_OH_noTert', 'fr_ArN', 'fr_Ar_COO',
+    'fr_Ar_N', 'fr_Ar_NH', 'fr_Ar_OH', 'fr_COO', 'fr_COO2', 'fr_C_O', 'fr_C_O_noCOO',
+    'fr_C_S', 'fr_HOCCN', 'fr_Imine', 'fr_NH0', 'fr_NH1', 'fr_NH2', 'fr_N_O',
+    'fr_Ndealkylation1', 'fr_Ndealkylation2', 'fr_Nhpyrrole', 'fr_SH', 'fr_aldehyde',
+    'fr_alkyl_carbamate', 'fr_alkyl_halide', 'fr_allylic_oxid', 'fr_amide', 'fr_amidine',
+    'fr_aniline', 'fr_aryl_methyl', 'fr_azide', 'fr_azo', 'fr_barbitur', 'fr_benzene',
+    'fr_benzodiazepine', 'fr_bicyclic', 'fr_diazo', 'fr_dihydropyridine', 'fr_epoxide',
+    'fr_ester', 'fr_ether', 'fr_furan', 'fr_guanido', 'fr_halogen', 'fr_hdrzine',
+    'fr_hdrzone', 'fr_imidazole', 'fr_imide', 'fr_isocyan', 'fr_isothiocyan',
+    'fr_ketone', 'fr_ketone_Topliss', 'fr_lactam', 'fr_lactone', 'fr_methoxy',
+    'fr_morpholine', 'fr_nitrile', 'fr_nitro', 'fr_nitro_arom', 'fr_nitro_arom_nonortho',
+    'fr_nitroso', 'fr_oxazole', 'fr_oxime', 'fr_para_hydroxylation', 'fr_phenol',
+    'fr_phenol_noOrthoHbond', 'fr_phos_acid', 'fr_phos_ester', 'fr_piperdine',
+    'fr_piperzine', 'fr_priamide', 'fr_prisulfonamd', 'fr_pyridine', 'fr_quatN',
+    'fr_sulfide', 'fr_sulfonamd', 'fr_sulfone', 'fr_term_acetylene', 'fr_tetrazole',
+    'fr_thiazole', 'fr_thiocyan', 'fr_thiophene', 'fr_unbrch_alkane', 'fr_urea',
+]
+
 
 @dataclass
 class PredictorPaths:
@@ -73,24 +117,19 @@ class PredictorPaths:
 
     def ensure_artifacts(self, force: bool = False) -> None:
         required = list(self.required_artifact_map().keys())
-
         if force:
             for rel_path in required:
                 p = self.artifact_dir / rel_path
                 if p.exists():
                     p.unlink()
-
         missing = [rel for rel in required if not (self.artifact_dir / rel).exists()]
-        if (not force) and (not missing):
+        if not force and not missing:
             return
-
         self.artifact_dir.mkdir(parents=True, exist_ok=True)
         (self.artifact_dir / "esandt_enhancements").mkdir(parents=True, exist_ok=True)
-
         bundle_name = os.getenv("SO4_RELEASE_BUNDLE", "so4_assets_bundle.zip")
         bundle_url = f"{self.release_base_url}/{bundle_name}"
         bundle_local = self.root_dir / bundle_name
-
         try:
             if not bundle_local.exists():
                 urllib.request.urlretrieve(bundle_url, bundle_local.as_posix())
@@ -133,12 +172,17 @@ def standardize_molecule(smiles: str):
 
 
 def descriptor_names() -> List[str]:
-    return [name for name, _ in Descriptors._descList]
+    return list(TRAINING_DESCRIPTOR_NAMES)
 
 
 def compute_descriptor_block(mol):
+    desc_map = {name: fn for name, fn in Descriptors._descList}
     vals = []
-    for _, fn in Descriptors._descList:
+    for name in TRAINING_DESCRIPTOR_NAMES:
+        fn = desc_map.get(name)
+        if fn is None:
+            vals.append(0.0)
+            continue
         try:
             v = float(fn(mol))
             if np.isnan(v) or np.isinf(v):
@@ -234,11 +278,16 @@ class SO4Predictor:
             + list(num_df.columns)
             + src_cols
         )
+        expected_dim = len(self.base_models["catboost"].feature_names_)
+        if len(feature_names) < expected_dim:
+            pad_n = expected_dim - len(feature_names)
+            feature_names += [f"compat_pad_{i}" for i in range(pad_n)]
+        elif len(feature_names) > expected_dim:
+            feature_names = feature_names[:expected_dim]
         meta_feature_idx = np.concatenate(
             [
                 np.arange(len(descriptor_names()), dtype=int),
-                np.array([len(descriptor_names()) + self.fp_bits], dtype=int),
-                np.arange(len(descriptor_names()) + self.fp_bits + 1, len(feature_names), dtype=int),
+                np.arange(len(descriptor_names()) + self.fp_bits, len(feature_names), dtype=int),
             ]
         )
         return feature_names, meta_feature_idx
@@ -301,6 +350,12 @@ class SO4Predictor:
         num_df = num.fillna(-999.0).to_numpy(dtype=np.float32)
         src = query_df[["src_A_raw_k_with_smiles", "src_B_logk_name_only", "src_C_logk_with_pH_T", "src_D_logk_with_pH_over_TK"]].astype(np.float32).to_numpy(dtype=np.float32)
         x = np.concatenate([desc, fp, so4_prior, num_df, src], axis=1).astype(np.float32)
+        # Enforce exact feature length expected by models.
+        expected_dim = len(self.feature_names)
+        if x.shape[1] < expected_dim:
+            x = np.concatenate([x, np.zeros((x.shape[0], expected_dim - x.shape[1]), dtype=np.float32)], axis=1)
+        elif x.shape[1] > expected_dim:
+            x = x[:, :expected_dim]
         return pd.DataFrame(x, columns=self.feature_names)
 
     def _similarity_bin(self, sim: float) -> str:
@@ -367,12 +422,37 @@ class SO4Predictor:
         query_df = self._build_query_df(smiles=smiles, p_h=p_h, temp_c=temp_c, p_h_over_tk=p_h_over_tk)
         x_query_df = self._build_query_features(query_df)
         x_query_np = x_query_df.to_numpy(dtype=np.float32)
-        # 关键修复：基学习器统一吃 numpy，避免 CatBoost 按列名匹配失败
+
+        def _predict_compat(model, x_df: pd.DataFrame, x_np: np.ndarray) -> float:
+            # CatBoost is strict with feature layout; feed numpy with exact width.
+            try:
+                expected = len(model.feature_names_)
+            except Exception:
+                expected = getattr(model, "n_features_in_", x_np.shape[1]) or x_np.shape[1]
+            x_in = x_np
+            if x_in.shape[1] < expected:
+                x_in = np.concatenate([x_in, np.zeros((x_in.shape[0], expected - x_in.shape[1]), dtype=np.float32)], axis=1)
+            elif x_in.shape[1] > expected:
+                x_in = x_in[:, :expected]
+            out = model.predict(x_in)
+            return float(np.ravel(out)[0])
+
         base_preds = np.asarray(
-        [float(np.ravel(model.predict(x_query_np))[0]) for model in self.base_models.values()],
-        dtype=np.float32,)
+            [_predict_compat(model, x_query_df, x_query_np) for model in self.base_models.values()],
+            dtype=np.float32,
+        )
         sigma = float(np.std(base_preds))
-        meta_array = np.concatenate([base_preds[None, :], x_query_np[:, self.meta_feature_idx]], axis=1)
+        meta_feats = x_query_np[:, self.meta_feature_idx]
+        meta_array = np.concatenate([base_preds[None, :], meta_feats], axis=1)
+        # Guard for legacy meta model width.
+        expected_meta = len(self.meta_cat.feature_names_)
+        if meta_array.shape[1] < expected_meta:
+            meta_array = np.concatenate(
+                [meta_array, np.zeros((meta_array.shape[0], expected_meta - meta_array.shape[1]), dtype=np.float32)],
+                axis=1,
+            )
+        elif meta_array.shape[1] > expected_meta:
+            meta_array = meta_array[:, :expected_meta]
         pred_cat = float(self.meta_cat.predict(meta_array)[0])
         pred_ridge = float(self.meta_ridge.predict(base_preds[None, :])[0])
         pred_logk = float(0.7 * pred_cat + 0.3 * pred_ridge)
