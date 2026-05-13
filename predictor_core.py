@@ -83,41 +83,46 @@ class PredictorPaths:
                     shutil.copyfileobj(src, dst)
 
     def ensure_artifacts(self, force: bool = False) -> None:
-        required = list(self.required_artifact_map().keys())
-        if force:
-            for rel_path in required:
-                p = self.artifact_dir / rel_path
-                if p.exists():
-                    p.unlink()
-        missing = [rel for rel in required if not (self.artifact_dir / rel).exists()]
-        if not force and not missing:
-            return
-        self.artifact_dir.mkdir(parents=True, exist_ok=True)
-        (self.artifact_dir / "esandt_enhancements").mkdir(parents=True, exist_ok=True)
-        bundle_name = os.getenv("SO4_RELEASE_BUNDLE", "so4_assets_bundle.zip")
-        bundle_url = f"{self.release_base_url}/{bundle_name}"
-        bundle_local = self.root_dir / bundle_name
-        try:
-            if not bundle_local.exists():
-                urllib.request.urlretrieve(bundle_url, bundle_local.as_posix())
-            self._extract_zip_portable(bundle_local)
-        except Exception:
-            for rel_path in missing:
-                filename = self.required_artifact_map()[rel_path]
-                url = f"{self.release_base_url}/{filename}"
-                target = self.artifact_dir / rel_path
-                target.parent.mkdir(parents=True, exist_ok=True)
-                urllib.request.urlretrieve(url, target.as_posix())
-        finally:
-            if bundle_local.exists():
-                bundle_local.unlink()
+    required = list(self.required_artifact_map().keys())
 
-        still_missing = [rel for rel in required if not (self.artifact_dir / rel).exists()]
-        if still_missing:
-            raise FileNotFoundError(
-                "Missing required artifacts after download: " + ", ".join(still_missing)
-            )
+    if force:
+        for rel_path in required:
+            p = self.artifact_dir / rel_path
+            if p.exists():
+                p.unlink()
 
+    missing = [rel for rel in required if not (self.artifact_dir / rel).exists()]
+    if (not force) and (not missing):
+        return
+
+    self.artifact_dir.mkdir(parents=True, exist_ok=True)
+    (self.artifact_dir / "esandt_enhancements").mkdir(parents=True, exist_ok=True)
+
+    bundle_name = os.getenv("SO4_RELEASE_BUNDLE", "so4_assets_bundle.zip")
+    bundle_url = f"{self.release_base_url}/{bundle_name}"
+    bundle_local = self.root_dir / bundle_name
+
+    try:
+        if not bundle_local.exists():
+            urllib.request.urlretrieve(bundle_url, bundle_local.as_posix())
+        self._extract_zip_portable(bundle_local)
+    except Exception:
+        # fallback: download individual files
+        for rel_path in missing:
+            filename = self.required_artifact_map()[rel_path]
+            url = f"{self.release_base_url}/{filename}"
+            target = self.artifact_dir / rel_path
+            target.parent.mkdir(parents=True, exist_ok=True)
+            urllib.request.urlretrieve(url, target.as_posix())
+    finally:
+        if bundle_local.exists():
+            bundle_local.unlink()
+
+    still_missing = [rel for rel in required if not (self.artifact_dir / rel).exists()]
+    if still_missing:
+        raise FileNotFoundError(
+            "Missing required artifacts after download: " + ", ".join(still_missing)
+        )
 
 def standardize_molecule(smiles: str):
     if smiles is None or pd.isna(smiles):
