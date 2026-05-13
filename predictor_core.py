@@ -366,9 +366,13 @@ class SO4Predictor:
     def predict(self, smiles: str, p_h=None, temp_c=None, p_h_over_tk=None, top_k_neighbors: int = 5) -> Dict[str, Any]:
         query_df = self._build_query_df(smiles=smiles, p_h=p_h, temp_c=temp_c, p_h_over_tk=p_h_over_tk)
         x_query_df = self._build_query_features(query_df)
-        base_preds = np.asarray([float(model.predict(x_query_df)[0]) for model in self.base_models.values()], dtype=np.float32)
+        x_query_np = x_query_df.to_numpy(dtype=np.float32)
+        # 关键修复：基学习器统一吃 numpy，避免 CatBoost 按列名匹配失败
+        base_preds = np.asarray(
+        [float(np.ravel(model.predict(x_query_np))[0]) for model in self.base_models.values()],
+        dtype=np.float32,)
         sigma = float(np.std(base_preds))
-        meta_array = np.concatenate([base_preds[None, :], x_query_df.to_numpy(dtype=np.float32)[:, self.meta_feature_idx]], axis=1)
+        meta_array = np.concatenate([base_preds[None, :], x_query_np[:, self.meta_feature_idx]], axis=1)
         pred_cat = float(self.meta_cat.predict(meta_array)[0])
         pred_ridge = float(self.meta_ridge.predict(base_preds[None, :])[0])
         pred_logk = float(0.7 * pred_cat + 0.3 * pred_ridge)
